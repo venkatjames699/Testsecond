@@ -1,1 +1,426 @@
 
+10 Points to Secure Your ASP.NET MVC Applications.
+
+        
+1) Security Misconfiguration (Error Handling Must Setup Custom Error Page) 
+2) Cross-Site Request Forgery (CSRF)
+3) Cross-Site Scripting (XSS) attacks
+4) Malicious File Upload.
+5) Version Discloser
+6) SQL Injection Attack.
+7) Sensitive Data Exposure
+8) Audit trail
+9) Broken authentication and session management
+10) Invalidated Redirects and Forwards
+1) Security Misconfiguration (Error Handling Must Setup Custom Error Page)
+In this kind of attack, the attacker intercepts form data which is submitted by end User and changes values and sends the modified data to the server.
+So, for such kind of scenarios developers do put proper validations in place but when these validations display error lot of information of the server is revealed.
+Problem with displaying Error occurred to users
+Now exception which occurs is directly displayed to attacker which leak lots of valuable information about the server and our program behavior. Using this error information, he can try various permutation and combination to exploit our system.
+Solution: -
+
+So, the solution here is we need to set some kind of error page which does not show the internal technical error but rather shows a custom error message.
+We have two approaches for It: -
+1.  Create a custom Error Handling Attribute.
+2.  Setting Custom Error page from Web.config file
+
+
+2) Cross-Site Request Forgery (CSRF)
+A CSRF vulnerability allows an attacker to force a validated and logged in user to perform actions without their consent or unknowingly.
+Take this simple example.
+User logs in to the bank server.
+Bank authorizes and a secure session is established between user and the bank server.
+The attacker sends an email with a malicious link saying “Earn 100000$ now” to the user.
+User clicks on the malicious link and the site tries transfer money from your account to the attackers account. Because the secure session is established the malicious code can execute successfully.
+
+Microsoft has recognized this threat and for preventing the same we have something called as AntiForgeryToken.
+Solution: -
+We need to add @Html.AntiForgeryToken() helper in your form inside form tag . And on the Action Method which handles your post ([HttpPost])Request we need to put[ValidateAntiForgeryToken] attribute which will check if the token is valid.
+Adding [AntiForgeryToken] helper to View
+
+
+
+Adding [ValidateAntiForgeryToken] Attribute to HttpPost[HttpPost] Method. 
+
+
+WorkingofAntiForgeryToken
+When we add AntiForgeryToken helper on View it creates a hidden field and assigns a unique token value to it and meanwhile a session Cookie is added to the browser.
+When we post formHTML itschecksfor __RequestVerificationToken Hidden field and whether __RequestVerificationToken Cookie are present or not. If either the cookie or the form __RequestVerificationToken Hidden field values are missing, or the values don't match, ASP.NET MVC does not process the action. This is how we can prevent cross-site request forgery attack in asp.net MVC.
+
+
+
+
+
+
+
+
+
+
+
+
+3) Cross-Site Scripting (XSS) attacks
+Cross-site Scripting (XSS) is an attack in which malicious scripts is injected via input fields this attack is most common and allows an attacker to steal credentials and valuable data that can lead to a big security breach.n this attack attacker visits a website and tries to execute a malicious scripts in form comment box. Now if website has not checked for Malicious code then the code can get executed on the server causing damage.
+Lets try to understand the same using a example.Below is simple Employee form which we are trying to save data. Now in the text box I am trying to execute some malicious code using javascript using the SCRIPT tag. But if we try to submit the same MVC throws an error that something bad is happening.
+In short by default ASP.NET prevents Cross Site Script attack.
+Understanding the Error Displayed
+A potentially dangerous Request.Form value was detected from the client (worktype="<script>alert('hi');").
+This error occurs because MVC is validating data which is entered by User and if User tried to execute such script it does not allow and that’s a good news.
+ But now what if we want to put SCRIPT tag. For example programming sites like codeproject has a genuine need that end user should submit code and script snippets. In those scenarios we would like the end user to post code through the UI.
+So lets us understand how to do the same but at the same time not compromise on security.
+So we have four things via which we can allow scripts to be posted.
+
+
+
+
+
+Solution: -
+1. [ValidateInput(false)]
+2. [AllowHtml]
+3. [RegularExpressionAttribute]
+4. AntiXSS Library
+5. 
+Solution 1:-
+ValidateInput
+[ValidateInput] is an attribute which can be applied on Controller or Action Method on which we want the script to go through.
+If we want Mark up to be allowed then we need to set enableValidation Properties to False([ValidateInput(false)]) which will not validate input if we set to true then[ValidateInput(true)]) It will validate input.In the same way, if you apply it on Controller then it appliesto entire action methods inside thecontroller and if you apply it on Action Method then it will only be specific to that action method.
+But ValidateInputattributewill apply to all properties of Model (EmployeeDetails).
+Solution 2:-
+AllowHtml
+[AllowHtml]attributes that is applied to Model properties such that it will not validate that particular Model property on which AllowHtmlattribute is added.This allows submittingHTML for avoiding Cross Site Scripting attack.
+
+Solution 3:-
+Regular Expression
+The third solution to XSS attack is validating all your Fields with Regular Expression such that only valid data can move in.
+List of Regular Expression to Use.
+Alphabets and Space
+[a-zA-Z ]+$
+Alphabets
+^[A-z]+$
+Numbers
+^[0-9]+$
+Alphanumeric
+^[a-zA-Z0-9]*$
+Email
+[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*@(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\\.)+[a-z0-9](?:[a-z0-9-]*[a-z0-9])?
+Mobile no.
+^([7-9]{1})([0-9]{9})$
+Date Format( mm/dd/yyyy | mm-dd-yyyy | mm.dd.yyyy)
+/^(0[1-9]|1[012])[- /.](0[1-9]|[12][0-9]|3[01])[- /.](19|20)\\d\\d+$/
+Website URL
+^http(s)?://([\\w-]+.)+[\\w-]+(/[\\w- ./?%&=])?$
+Credit Card Numbers
+Visa
+^4[0-9]{12}(?:[0-9]{3})?$
+MasterCard
+^5[1-5][0-9]{14}$
+American Express
+^3[47][0-9]{13}$
+Decimal number
+((\\d+)((\\.\\d{1,2})?))$
+
+Solution 4:-
+AntiXSS Library
+The fourth solution to XSS attack is by using MicrosoftAntiXSSLibrary which will help to protect your application.
+Now let’s start with install MicrosoftAntiXSSLibrary from NuGetjust right click on Project then select ManageNuGetPackages.
+
+After selecting a new dialog will pop up with name ManageNuGetPackages in thisdialog search AntiXSSLibraryin thesearch box then choose the first option which is AntiXSS click on install button. 
+After installing we are going to have a look on how to use AntiXSSLibrary. 
+
+
+
+
+Below snapshot shows how to use Sanitizer Class Method
+Sanitizer is a static class we can access anywhere we just need to provide input which field which we need to validate to Sanitizer class method (GetSafeHtmlFragment) it will check and return you Sanitize string.
+4) Malicious File Upload.
+Till now we have learned how to protect all your input fields from attack but still, we are missing one main field it is File upload control we need to protect from taking invalid input most attackers try to upload a malicious file which may cause a security issue. The attacker can change file extension [tuto.exe to tuto.jpeg] and the malicious script can be uploaded as an image file. The Most of the developer just look on the file extension of the file and save in folder or database but file extension is valid not file it may have a malicious script.
+Solution:-
+1. First thing we need to do is validate file uploads
+2. Allow only access to files extension which are required
+3. Check the file header.
+First, thething I am going to add a file upload control on View.
+
+Validating file uploads on Index HttpPost Method
+In this Method first, we are going to validateContent-Lengthof thefile if it is zero[upload.ContentLength == 0] then user has not uploaded file.
+If Content-Lengthis greater than zero then it has file [upload.ContentLength> 0] and we are going to reading Filename of File along with Content Type and File Bytes.
+
+
+
+5) Version Discloser
+Version information can be used by anattacker to target specific attack on that Version which is disclosed.
+Whenever browsersendsHTTP torequest to theserverin response we get response header which contains information of [Server, X-AspNet-Version,X-AspNetMvc-Version, X-Powered-By].
+The server shows information of which web server is begin used.
+X-AspNet-Versionshows information of which specific Asp.Net VersionUsed.
+X-AspNetMvc-Versionshows information of which ASP.NET MVC version Used.
+X-Powered-By shows information of which framework your website is running on.
+Solution:-
+1. For removingX-AspNetMvc-Version header
+To remove response X-AspNetMvc-Versionwhich shows information of which ASP.NET MVC version used we have built in property in MVC.
+Just set [MvcHandler.DisableMvcResponseHeader = true;] in Global.asaxApplication start event [Application_Start()] this will remove header it won’t be displayed any more.
+
+2) For removingX-AspNet-Version and Server header
+To remove response of Server header which shows information of which web server is begin used and along with that X-AspNet-Version headershows information of which specific Asp.Net Version Used.
+Just add an event in [Application_PreSendRequestHeaders()] in global.asax and then to remove header we need to set theproperty as below.
+
+protectedvoidApplication_PreSendRequestHeaders()
+        {
+Response.Headers.Remove("Server");           //Remove Server Header   
+Response.Headers.Remove("X-AspNet-Version"); //Remove X-AspNet-Version Header
+ }
+
+3) For removingX-Powered-Byheader
+To remove response of X-Powered-Byheaderwhich shows information of which framework your website is running on.
+
+
+Just add this tag underSystem.webServerin Web.configfile will remove [X-Powered-By] header.
+
+
+
+<httpprotocol>
+<customheaders>
+<remove name= x- powered By/>
+<customheaders>
+<httpprotocol>
+
+SQL Injection Attack.
+SQL Injection attack is one of the most dangerous attacks it is ranked 1 in top 10 Vulnerabilities by OWASP2013 [Open Web Application Security Project] . SQL injection attack can give valuable data to the attacker that can lead to abig security breach and can also take full access to the database server.
+In SQL Injection attacker always try to enter malicious SQL statement which will get executed in the database and return unwanted data to the attacker.
+
+Simple View which shows All User data after SQL Injection attack
+In this Browser View as attacker saw Application URL which contains some valuable data which is ID [http://localhost:3837/EmployeeList/index?Id=2] attacker tries SQL Injection attack as shown below.
+
+
+After trying permutation & combination of SQL injection attack , the attacker gets access to all User data.
+Displaying SQL injection in Debug Mode
+Here we can see in details how attacker passed malicious SQL statement which gets executed in the database.
+Solution:-
+1. Validate inputs
+2. Use of low-privileged database logins
+3. Use Parameterized queries
+4. Use ORM (e.g. Dapper , Entity framework )
+5. 5) Use Stored Procedures
+1. Validate inputs
+Always validate input in both side Client side and Server side such that no special characters are entered in inputs which allow an attacker to get into the system.
+In MVC we use Data Annotations for Validation.
+Data Annotations attribute are simple rule that are applied on Model to validate Model data.
+
+2) Give least-privileged database logins
+Db_owner is default role for the database which can grant and revoke access, create tables, stored procedures, views, run backups, schedule jobs can even drop the database. If this kind of Role access is given to database then User who using can have full access and he can perform a various activity on it. We must create a new user account with least-privileged and give only that privilege that user must access.
+e.g. if the user has to work related to Selecting , Inserting and Updating Employee details then only select, Insert and update permission should be provided.
+Step to add new User and Provide Privilege
+In this part, I have shown a small sample of how to create User provide specific permission to table.
+1. Creating New User
+2. View after creating User
+3. Selecting object that user can access (table)
+4. Choosing specific table to provide permission
+
+3) Use Stored Procedures
+Stored procedures are a form of parameterized query .Using Stored Procedures is also one way to protect from SQL injection attack.
+In below snapshot we have removed inline Query which we were using before now we have written code for getting data from database using stored procedure which helps us to protect against SQL injection attack ,then to stored procedure we need to pass parameter [@EmpID] and according to parameter it is going to get records from database after passing parameter we have used CommadType [CommadType.StoredProcedure] which indicate we are using storedprocedure .
+Note :- Always Use parameter with stored procedure if you do not use it still you are Vulnerable to SQL injection attack.
+Use Parameterized queries
+Using parameterized Queries is another solution to prevent againstSQL injection attack it is similar to stored procedure. Instead of Concatingstring, you need to add parameters to the SQLQuery and pass parameter value using the SqlCommand .
+
+Use ORM (Entity framework )
+ORM stands for Object relational Mapper which maps SQL object to you domain object [C#].
+If you are using entity framework properly you are not prone to SQL injection attack because entity framework internal uses parameterized query.
+
+7) Sensitive Data Exposure
+All Website and Application always have database in which entire data is been stored .mean while we store Users personal information (which may contains Password , PAN number , Passport details ,Credit Card Numbers) in this we mostly encrypt only password right other data are stored in clear text which can lead to Sensitive Data Exposure whenever an attacker attack he gets access to database if he finds the table where all this personal and financial details stored steal that information .
+
+Intercepting Login page by attacker to stealCredentials
+When User enter Credentials in Login page and submit to server the data [username and password] is transferred to theserver in theclear text this data [username and password] can be intercepted by theattackerand steal your Credentials.
+Solution :-
+1. Always Send Sensitive Data to Server in Encryptedformat using Strong Hashing with Seed (Random Hash).
+2. Always apply SSL to theWeb application.
+3. Do not store Sensitive data if want to store using Strong Hashing techniques
+Always Send Sensitive Data to Server in Encrypted format using Strong Hashing with seed
+In this demo,we are going useanMD5 algorithm with seed to encrypted data on client side and send to aserver such that it cannot be stolen by theattacker.
+After entering User credentials when theuserclicks on loginbutton, this time, the user entered password get encrypted along with seed on theclient side using MD5 and then it is sent to theserver , in this process if anattackertries to sniff network then encrypted hash is only seen and which cannot be decrypted. 
+
+2) Use SSL for Securing Web application
+SSL (Secure Sockets Layer) is Layer which Secure (Encrypted) communication between client and server such that any data [Banking details, Password, and anotherfinancialtransaction] passed from client and server is Secure (Encrypted) .
+
+SSL is mainly Applied on theLogin page and payment gateways if you want to apply on theentire application then also you can apply.
+
+3) Do not store Sensitive data in Database in a clear form
+Always Try not to store Credit Card, Debit Card and financial details and other Sensitive details in thedatabasein Clear form . Always Use Strong Hashing techniques to encrypted data and then store in thedatabase. if anattacker gets direct access to thedatabase then all data in clear form can be Breached.
+
+8) Audit trail
+Audit Trail in IT World is used to keep track of User activity on aWebapplication which he using , it is where important in detecting security problems, performance problems, and ApplicationsLevel Error problems. It also helps us to easily track where theproblemactually is and resolve it.
+Solution:-
+1. Keep Audit Trail of all User activity on Web Application and always Monitor it.
+Keep Audit Trail of all User activity on Web Application and always Monitor it.
+For Maintaining Audit Trail first we are going to create a table in thedatabase for storing Audit data with table name [AuditTB] After that we going create an ActionFilterAttribute with Name [UserAuditFilter]inside this on Action Executing we are going to write code for inserting data in thedatabase of theuser who are accessing our Application.
+AuditTB Table View
+In this table, we have taken common fields which we required to recognize User and his Activity.
+
+9) Broken authentication and session management
+If Authentication and Sessionmanagement are not properly Implemented in a webapplication which mayallow anattacker to steal apassword , session tokens , cookies and such issue may also allow anattacker to get access to theentire application and breach all user credentials.
+
+Ways attacker can steal data
+1. Not Secure connection (Not Using SSL)
+2. Predictable login credentials
+3. Not storing credentials Encrypted form.
+4. Improper Application logout.
+
+
+
+
+
+
+
+Attacks Possible
+1. Session Fixation
+
+Before finding asolution how to prevent this attack lets have a look on small demo how Session Fixation attack occurs.
+Whenever ausersends first request to server the login page is loaded then User enter valid Login creditsto login in web application after successful login we assign some values in session to recognize Unique User,meanwhile a [“ASP.NET_SessionId”] cookie is Added to thebrowser for recognizingspecific User who has sent arequest and [“ASP.NET_SessionId”] cookie value will be always sent to theserver on every requesttill you are not logout from theapplication and on logout, we basically write code for removing session values which are created but we do not remove [“ASP.NET_SessionId”] cookie which is created on Login . this value helps anattacker to perform Session Fixation attack.
+
+Demo of Session Fixation
+When we access login page we do not have any [“ASP.NET_SessionId”] cookie in thebrowser as we can see in cookie manager.
+After User Enter Valid Credentials
+After entering Valid Login Credentials [“ASP.NET_SessionId”] Cookie is added to thebrowser.
+Note :- When any data is saved into the Session[“ASP.NET_SessionId”] cookie is created and added to theuser browser.
+After Logout out from application Still [“ASP.NET_SessionId”] Cookie Exits. 
+
+
+
+Solution :-
+1. Remove[“ASP.NET_SessionId”]after logout.
+2. Securing Cookies
+3. Use SSL for Securing Cookies and Session
+Remove [“ASP.NET_SessionId”] after logout
+On logout we are removing Session values long with that we are removing [“ASP.NET_SessionId”] Cookie from browser.
+
+//
+// POST: /Account/LogOff
+publicActionResultLogOff()
+{
+//Removing Session
+Session.Abandon();
+Session.Clear();
+Session.RemoveAll();
+
+//Removing ASP.NET_SessionId Cookie
+if (Request.Cookies["ASP.NET_SessionId"] != null)
+    {
+Response.Cookies["ASP.NET_SessionId"].Value = string.Empty;
+Response.Cookies["ASP.NET_SessionId"].Expires = DateTime.Now.AddMonths(-10);
+    }
+
+if (Request.Cookies["AuthenticationToken"] != null)
+    {
+Response.Cookies["AuthenticationToken"].Value = string.Empty;
+Response.Cookies["AuthenticationToken"].Expires = DateTime.Now.AddMonths(-10);
+    }
+
+returnRedirectToAction("Login", "Account");
+}
+
+
+
+
+Securing cookie
+For securing cookies On Login [HttpPost] Action Method we are goingto Create a New Session in that Session [Session["AuthenticationToken"]] we are going save NewGuid along with that we are going to add a cookie with Name ["AuthenticationToken"] and it will also have same Value [Guid] which we have stored in Session.
+[HttpPost]
+[AllowAnonymous]
+[ValidateAntiForgeryToken]
+publicActionResult Login(LoginModel model, stringreturnUrl)
+{
+if (ModelState.IsValid)
+    {   //Getting Pasword from Database
+varstoredpassword = ReturnPassword(model.UserName);
+// Comparing Password With Seed
+if (ReturnHash(storedpassword, model.hdrandomSeed) == model.Password)
+        {
+Session["Username"] = model.UserName;
+Session["UserID"] = 1;
+
+// Getting New Guid
+stringguid = Convert.ToString(Guid.NewGuid());
+//Storing new Guid in Session
+Session["AuthenticationToken"] = guid;
+//Adding Cookie in Browser
+Response.Cookies.Add(newHttpCookie("AuthenticationToken", guid));
+
+returnRedirectToAction("Index", "Dashboard");
+        }
+else
+        {
+ModelState.AddModelError("", "The user name or password provided is incorrect.");
+        }
+    }
+return View(model);}
+
+After storing data in session and adding a cookie in thebrowser now let’s match this values on every request and check these values are similarif not then we are going to redirect to Login page.
+For doing this part I am going to add an AuthorizationFilter in theproject and inside that we are going to write logic for checking Session and cookie values are similar or not.
+
+AuthenticateUser ActionFilter
+If you check below code snippet I have created an AuthorizationFilterwith name AuthenticateUser this filter we are inheriting IAuthorizationFilter Interface and FilterAttribute class with this we are implementing method inside interface [OnAuthorization] and write whole logic in this method.
+using System;
+usingSystem.Web.Mvc;
+
+namespaceMvcSecurity.Filters
+{
+publicclassAuthenticateUser : FilterAttribute, IAuthorizationFilter
+    {
+publicvoidOnAuthorization(AuthorizationContextfilterContext)
+        {
+stringTempSession =
+Convert.ToString(filterContext.HttpContext.Session["AuthenticationToken"]);
+stringTempAuthCookie =
+Convert.ToString(filterContext.HttpContext.Request.Cookies["AuthenticationToken"].Value);
+
+if (TempSession != null&&TempAuthCookie != null)
+            {
+if (!TempSession.Equals(TempAuthCookie))
+                {
+ViewResult result = newViewResult();
+result.ViewName = "Login";
+filterContext.Result = result;
+                } 
+            }
+else
+            {
+ViewResult result = newViewResult();
+result.ViewName = "Login";
+filterContext.Result = result;
+            }
+        }
+    }
+}
+
+After applying Action filter on all the controller which user access after Logged into theapplication.
+Now if theattackerknows[“ASP.NET_SessionId”] cookie valueand a new cookie[Cookies["AuthenticationToken"]] value he will still not able to Session Fixation attack here because the new [Cookies["AuthenticationToken"]] contains GUID which is unique and same values is stored in Session [Session["AuthenticationToken"]] on Web Serverbut attacker can’t know the Session value that is stored on the web server and this values keep changing every time when user is logging to application and the old session values which attacker used to do attack will not work in this scenarios.
+Finally, if we will allow those User access to theapplication who has valid Session["AuthenticationToken"]value and Cookies["AuthenticationToken"]value.
+Use SSL for Securing Cookies and Session Values
+SSL (Secure Sockets Layer) is Layer which Secure (Encrypted) communication between client and server such that any data [Banking details, Password, Session ,Cookie and anotherfinancial transaction] passed from client and server is Secure (Encrypted).
+
+10) Unvalidated Redirects and Forwards
+In all web application, we do redirect from one page to another page and sometimes we redirect to another application too but while redirect we won't validate URL which we are going redirect which causesUnvalidated Redirects and Forwards Attack.
+This attack mostly uses to phish User to get Valuable details (User Credentials) or to install maliciousmalware to the User computer.
+
+Attack Scenario
+In this attack User gets Email from attacker which contains offer related to Ecommerce shopping when user click on link given below he is redirected to shopping site [http://demotop.com] but if you see URL closely you will see that this URL contains redirect [http://demotop.com/Login/Login?url=http://mailicious.com] now after entering valid Username and Password the User will be redirected to Malicious site [http://mailicious.com] which is similar to [http://demotop.com] shopping site . On theMalicious site it will show Message “Invalid Username and Password” then again User will enter Username and Password and he will be redirected back to Original shopping site but meanwhile User Credentials are stolen in this attack.
+
+
+
+Solution
+1. Simply avoid using redirects and forwards.
+2. If you still want to use redirects and forwards then validate URL first.
+3. Use Url.IsLocalUrlto Preventing redirects and forwards in MVC.
+
+Using Url.IsLocalUrlin MVC
+Below is asnapshot of thelogin page in MVC which contains redirect URL to www.google.com when user enter Username and password then he will be redirected to www.google.comwhich is invalid to prevent this in MVC4 we have built in method called as Url.IsLocalUrlwhich checks that redirect URL which is Crafted is Local or not if not then it will not redirect it.
+
+After understanding how redirect is passed not let’s check how this URL gets checked and executed.
+The below [HttpPost] Login method get called when user enter Credentials and submit theform along with that redirect URL is also get posted which may containmalicious URL. For showing demo I have just checked that Username and password is not null after that we are calling RedirectToLocalAction Method and to this method we are going to pass redirect URL (returnUrl).
+
+After passing URL (returnUrl) to RedirectToLocalAction Method method then it is going pass URL to IsLocalUrl Method [Url.IsLocalUrl(returnUrl)] which is going check URL is local or not and return aboolean value if it is not then it will redirect to Home page else will redirect to returnUrl which is passed. 
+
+
+Source:( I Prefer you to check the following link for the better and detail view ) 
+http://www.codeproject.com/Articles/1116318/Points-to-Secure-Your-ASP-NET-MVC-Applications#1)_Security_Misconfiguration_(Error_Handling_Must_Setup_Custom_Error_Page)
+
+
+
+
